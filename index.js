@@ -268,7 +268,7 @@ const resultsPresenter = (records, weather, cbcNews, nyTimesNews, bbcNews) => {
   }
 
   const blankRow = (title = "") => {
-    return [{ colSpan: 4, content: title }];
+    return [{ colSpan: 4, content: chalk.dim(title) }];
   };
 
   table.push(
