@@ -17,19 +17,22 @@ const Table = require("cli-table3");
 // app.set("view engine", "ejs")
 // app.use(express.static("public"))
 
-const covidApiUrl = "https://data.ontario.ca/api/3/action/datastore_search?resource_id=ed270bb8-340b-41f9-a7c6-e8ef587e6d11&offset=200"
-const weatherApiUrl = "https://dd.weather.gc.ca/citypage_weather/xml/ON/s0000458_e.xml"
-const cbcNewsApiUrl = "https://www.cbc.ca/cmlink/rss-topstories?feed=mobile"
-const nyTimesNewsApiUrl = "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"
-const bbcNewsApiUrl = "http://feeds.bbci.co.uk/news/world/rss.xml"
+const urls = {
+  covid: "https://data.ontario.ca/api/3/action/datastore_search?resource_id=ed270bb8-340b-41f9-a7c6-e8ef587e6d11&offset=200",
+  weather: "https://dd.weather.gc.ca/citypage_weather/xml/ON/s0000458_e.xml",
+  cbcNews: "https://www.cbc.ca/cmlink/rss-topstories?feed=mobile",
+  nyTimes: "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
+  bbcNews: "http://feeds.bbci.co.uk/news/world/rss.xml",
+}
+
 
 const covidAPI = axios
-  .get(covidApiUrl)
+  .get(urls.covid)
   .then((response) => covidRecordsProcessor(response.data.result.records))
   .catch((err) => console.log(err));
 
 const weatherApi = axios
-  .get(weatherApiUrl)
+  .get(urls.weather)
   .then(({ data }) => {
     return toJson(data, {
       object: true,
@@ -44,7 +47,7 @@ const weatherApi = axios
   .catch((err) => console.log(err));
 
 const cbcNewsApi = axios
-  .get(cbcNewsApiUrl)
+  .get(urls.cbcNews)
   .then(({ data }) => {
     const jsonPackage = toJson(data, {
       object: true,
@@ -60,7 +63,7 @@ const cbcNewsApi = axios
   .catch((err) => console.log(err));
 
 const nyTimesNewsApi = axios
-  .get(nyTimesNewsApiUrl)
+  .get(urls.nyTimes)
   .then(({data}) => {
     const jsonPackage = toJson(data, {
       object: true,
@@ -77,7 +80,7 @@ const nyTimesNewsApi = axios
   .catch((err) => console.log(err))
 
   const bbcNewsApi = axios
-  .get(bbcNewsApiUrl)
+  .get(urls.bbcNews)
   .then(({data}) => {
     const jsonPackage = toJson(data, {
       object: true,
