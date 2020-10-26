@@ -7,6 +7,7 @@ const { toJson } = require("xml2json");
 const dropRight = require("lodash/dropRight");
 const startCase = require("lodash/startCase");
 const shuffle = require("lodash/shuffle");
+// const first = require("lodash/first")
 const differenceInDays = require("date-fns/differenceInDays");
 const format = require("date-fns/format");
 const chalk = require("chalk");
@@ -18,7 +19,9 @@ const Table = require("cli-table3");
 
 const covidApiUrl = "https://data.ontario.ca/api/3/action/datastore_search?resource_id=ed270bb8-340b-41f9-a7c6-e8ef587e6d11&offset=200"
 const weatherApiUrl = "https://dd.weather.gc.ca/citypage_weather/xml/ON/s0000458_e.xml"
-const newsApiUrl = "https://www.cbc.ca/cmlink/rss-topstories?feed=mobile"
+const cbcNewsApiUrl = "https://www.cbc.ca/cmlink/rss-topstories?feed=mobile"
+const nyTimesNewsApiUrl = "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"
+const bbcNewsApiUrl = "http://feeds.bbci.co.uk/news/world/rss.xml"
 
 const covidAPI = axios
   .get(covidApiUrl)
@@ -40,8 +43,8 @@ const weatherApi = axios
   .then((data) => data.siteData)
   .catch((err) => console.log(err));
 
-const newsApi = axios
-  .get(newsApiUrl)
+const cbcNewsApi = axios
+  .get(cbcNewsApiUrl)
   .then(({ data }) => {
     const jsonPackage = toJson(data, {
       object: true,
@@ -56,9 +59,43 @@ const newsApi = axios
   })
   .catch((err) => console.log(err));
 
-Promise.all([covidAPI, weatherApi, newsApi])
-  .then(([covid, weather, news]) => {
-    resultsPresenter(covid, weather, news);
+const nyTimesNewsApi = axios
+  .get(nyTimesNewsApiUrl)
+  .then(({data}) => {
+    const jsonPackage = toJson(data, {
+      object: true,
+      reversible: false,
+      coerce: true,
+      sanitize: true,
+      trim: false,
+      arrayNotation: false,
+    });
+
+    return jsonPackage.rss.channel.item.map((story) => story.title)
+    
+  })
+  .catch((err) => console.log(err))
+
+  const bbcNewsApi = axios
+  .get(bbcNewsApiUrl)
+  .then(({data}) => {
+    const jsonPackage = toJson(data, {
+      object: true,
+      reversible: false,
+      coerce: true,
+      sanitize: true,
+      trim: false,
+      arrayNotation: false,
+    });
+
+    return jsonPackage.rss.channel.item.map((story) => story.title)
+    
+  })
+  .catch((err) => console.log(err))
+
+Promise.all([covidAPI, weatherApi, cbcNewsApi, nyTimesNewsApi, bbcNewsApi])
+  .then(([covid, weather, cbcNews, nyTimesNews, bbcNews]) => {
+    resultsPresenter(covid, weather, cbcNews, nyTimesNews, bbcNews);
   })
   .catch((err) => console.log(err));
 
@@ -138,9 +175,12 @@ const weatherDataProcessor = (weather) => {
 
 // *** Display *** ==================================
 
-const resultsPresenter = (records, weather, news) => {
+const resultsPresenter = (records, weather, cbcNews, nyTimesNews, bbcNews) => {
   const table = new Table();
-  const shuffledNews = shuffle(news);
+  const shuffledCbcNews = shuffle(cbcNews);
+  const shuffledNyTimesNews = shuffle(nyTimesNews)
+  const shuffledBbcNews = shuffle(bbcNews)
+
   const newCasesArray = newCasesArrayMaker(records);
   const newCasesNumerator = parseInt(
     newCasesArray.map((record) => record.newCases).reduce((a, c) => a + c),
@@ -227,8 +267,8 @@ const resultsPresenter = (records, weather, news) => {
     return chalk.yellowBright(string)
   }
 
-  const blankRow = () => {
-    return [{ colSpan: 4, content: "" }];
+  const blankRow = (title = "") => {
+    return [{ colSpan: 4, content: title }];
   };
 
   table.push(
@@ -258,9 +298,18 @@ const resultsPresenter = (records, weather, news) => {
     forecastPresenter(weatherPackage.forecast[1]),
     forecastPresenter(weatherPackage.forecast[2]),
     blankRow(),
-    newsPresenter(shuffledNews[0]),
-    newsPresenter(shuffledNews[1]),
-    newsPresenter(shuffledNews[2])
+    blankRow("CBC News"),
+    newsPresenter(shuffledCbcNews[0]),
+    newsPresenter(shuffledCbcNews[1]),
+    newsPresenter(shuffledCbcNews[2]),
+    blankRow("NY Times"),
+    newsPresenter(shuffledNyTimesNews[0]),
+    newsPresenter(shuffledNyTimesNews[1]),
+    newsPresenter(shuffledNyTimesNews[2]),
+    blankRow("BBC Times"),
+    newsPresenter(shuffledBbcNews[0]),
+    newsPresenter(shuffledBbcNews[1]),
+    newsPresenter(shuffledBbcNews[2]),
   );
 
   console.log(table.toString());
